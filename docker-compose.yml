@@ -1,49 +1,56 @@
-version: '3'
+version: '3.5'
 services:
 
   #PHP Service
-  app:
+  control:
     build:
       context: .
       dockerfile: Dockerfile
-    image: jose/laravel
-    container_name: app
+    image: github.com/joseluis21/laravel2
+    container_name: control
     restart: unless-stopped
     tty: true
     environment:
-      SERVICE_NAME: app
+      SERVICE_NAME: control
       SERVICE_TAGS: dev
     working_dir: /var/www
+    ports: 
+      - "9001:9000"
     volumes:
-      - ./laravelapp:/var/www
+      - ./controlpvta:/var/www
       - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
     networks:
-      - app-network
+      - my-proxy-net
 
   #Nginx Service
-  webserver:
-    image: nginx:alpine
-    container_name: webserver
+  webserver2:
+    image: nginx
+    container_name: webserver2
     restart: unless-stopped
     tty: true
+    depends_on:
+      - control
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
     volumes:
-      - ./laravelapp:/var/www
+      - ./controlpvta:/var/www
       - ./nginx/conf.d/:/etc/nginx/conf.d/
+      # - ./nginx/:/etc/nginx/
     networks:
-      - app-network
+      - my-proxy-net
 
 #Docker Networks
 networks:
-  app-network:
-    driver: bridge
+  my-proxy-net:
+    external:
+      name: apps-network
 
 #docker-compose up -d
 #docker-compose down //Elimina todo los contenedores
-#docker-compose exec app php artisan key:generate
-#docker-compose exec app php artisan config:cache
+#docker-compose exec control composer install
+#docker-compose exec control php artisan key:generate
+#docker-compose exec control php artisan migrate --seed
+#docker-compose exec control php artisan config:cache
 #docker-compose stop
 #docker rm -f ID
 #docker run --name some-mysql -e MYSQL_ROOT_PASSWORD=12345678 -p 3306:3306 -d mysql
